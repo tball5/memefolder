@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEME DEPOT // MATRIX ARCHIVE</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #0a0a0a;
+      color: #00ff88;
+      overflow-x: hidden;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    #rain-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      border-bottom: 2px solid #00ff88;
+      margin-bottom: 30px;
+      background: rgba(10, 10, 10, 0.85);
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+    }
+
+    h1 {
+      font-size: 3em;
+      text-shadow: 0 0 20px #00ff88;
+      letter-spacing: 8px;
+      animation: glitch 3s infinite;
+    }
+
+    @keyframes glitch {
+      0%, 90%, 100% { transform: translate(0); }
+      92% { transform: translate(-2px, 2px); }
+      94% { transform: translate(2px, -2px); }
+      96% { transform: translate(-2px, -2px); }
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      font-size: 0.9em;
+      opacity: 0.7;
+      letter-spacing: 3px;
+    }
+
+    .upload-section {
+      background: rgba(0, 255, 136, 0.05);
+      border: 2px solid #00ff88;
+      padding: 30px;
+      margin-bottom: 40px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+    }
+
+    .upload-btn {
+      background: transparent;
+      color: #00ff88;
+      border: 2px solid #00ff88;
+      padding: 15px 40px;
+      font-size: 1.1em;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-btn:hover {
+      background: #00ff88;
+      color: #0a0a0a;
+      box-shadow: 0 0 30px #00ff88;
+      transform: scale(1.05);
+    }
+
+    .upload-btn::before {
+      content: '[ ';
+    }
+
+    .upload-btn::after {
+      content: ' ]';
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin: 20px 0;
+      font-size: 0.9em;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2em;
+      display: block;
+      text-shadow: 0 0 10px #00ff88;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .meme-card {
+      background: rgba(0, 255, 136, 0.05);
+      border: 1px solid #00ff88;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .meme-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 30px rgba(0, 255, 136, 0.4);
+      border-color: #00ff88;
+    }
+
+    .meme-card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+      filter: brightness(0.9);
+      transition: filter 0.3s;
+    }
+
+    .meme-card:hover img {
+      filter: brightness(1.1);
+    }
+
+    .meme-info {
+      padding: 10px 5px;
+      font-size: 0.8em;
+      text-align: center;
+    }
+
+    .download-btn {
+      background: transparent;
+      color: #00ff88;
+      border: 1px solid #00ff88;
+      padding: 5px 15px;
+      font-size: 0.8em;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.3s;
+    }
+
+    .download-btn:hover {
+      background: #00ff88;
+      color: #0a0a0a;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      max-width: 90%;
+      max-height: 90%;
+      position: relative;
+      animation: zoomIn 0.3s;
+    }
+
+    @keyframes zoomIn {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-content img {
+      max-width: 100%;
+      max-height: 90vh;
+      border: 3px solid #00ff88;
+      box-shadow: 0 0 50px rgba(0, 255, 136, 0.5);
+    }
+
+    .close-modal {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      color: #00ff88;
+      font-size: 2em;
+      cursor: pointer;
+      background: rgba(10, 10, 10, 0.8);
+      padding: 5px 15px;
+      border: 1px solid #00ff88;
+    }
+
+    .close-modal:hover {
+      background: #00ff88;
+      color: #0a0a0a;
+    }
+
+    .modal-download {
+      position: absolute;
+      bottom: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: transparent;
+      color: #00ff88;
+      border: 2px solid #00ff88;
+      padding: 10px 30px;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      font-size: 1em;
+    }
+
+    .modal-download:hover {
+      background: #00ff88;
+      color: #0a0a0a;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      opacity: 0.5;
+      font-size: 1.2em;
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      margin-top: 60px;
+      border-top: 1px solid #00ff88;
+      opacity: 0.6;
+      font-size: 0.8em;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="rain-canvas"></canvas>
+
+  <div class="container">
+    <header>
+      <h1>MEME DEPOT</h1>
+      <div class="subtitle">// MATRIX ARCHIVE SYSTEM v2.0 //</div>
+      <div class="stats">
+        <div class="stat-item">
+          <span class="stat-number" id="memeCount">0</span>
+          <div>MEMES UPLOADED</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="upload-section">
+      <h2 style="margin-bottom: 20px;">UPLOAD NEW MEME</h2>
+      <input type="file" id="fileInput" accept="image/*" multiple>
+      <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+        SELECT IMAGES
+      </button>
+      <p style="margin-top: 15px; opacity: 0.7; font-size: 0.9em;">
+        JPG, PNG, GIF, WEBP supported // Multiple uploads enabled
+      </p>
+    </div>
+
+    <div class="gallery" id="gallery">
+      <div class="empty-state">
+        NO MEMES DETECTED<br>
+        >> UPLOAD TO BEGIN <<
+      </div>
+    </div>
+
+    <footer>
+      MEME DEPOT // ALL UPLOADS STORED IN BROWSER LOCAL STORAGE<br>
+      DATA PERSISTS ACROSS SESSIONS // CLEAR BROWSER DATA TO RESET
+    </footer>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closeModal()">&times;</span>
+      <img id="modalImage" src="" alt="Enlarged meme">
+      <button class="modal-download" onclick="downloadCurrentMeme()">DOWNLOAD</button>
+    </div>
+  </div>
+
+  <script>
+    // Matrix Rain (calm, full-screen)
+    const rainCanvas = document.getElementById('rain-canvas');
+    const ctx = rainCanvas.getContext('2d');
+    rainCanvas.width = window.innerWidth;
+    rainCanvas.height = window.innerHeight;
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;:\'",.<>?/～!！@#￥%……&*（）——+【】｛｝；：＂＇，。、《》？';
+    const fontSize = 14;
+    let columns = rainCanvas.width / fontSize;
+    let drops = Array(Math.floor(columns)).fill(1);
+    
+    function drawRain() {
+      ctx.fillStyle = 'rgba(10, 10, 10, 0.08)';
+      ctx.fillRect(0, 0, rainCanvas.width, rainCanvas.height);
+      ctx.fillStyle = '#00ff88';
+      ctx.font = fontSize + 'px monospace';
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+        if (drops[i] * fontSize > rainCanvas.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    }
+    
+    drawRain();
+    setInterval(drawRain, 45);
+    
+    window.addEventListener('resize', () => {
+      rainCanvas.width = window.innerWidth;
+      rainCanvas.height = window.innerHeight;
+      columns = rainCanvas.width / fontSize;
+      drops = Array(Math.floor(columns)).fill(1);
+    });
+
+    // Meme Management
+    let memes = [];
+    let currentMemeData = null;
+
+    // Load memes from localStorage
+    function loadMemes() {
+      const stored = localStorage.getItem('memeDepot');
+      if (stored) {
+        memes = JSON.parse(stored);
+        displayMemes();
+      }
+    }
+
+    // Save memes to localStorage
+    function saveMemes() {
+      localStorage.setItem('memeDepot', JSON.stringify(memes));
+    }
+
+    // Handle file upload
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const files = e.target.files;
+      
+      for (let file of files) {
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          
+          reader.onload = function(event) {
+            const meme = {
+              id: Date.now() + Math.random(),
+              name: file.name,
+              data: event.target.result,
+              uploadDate: new Date().toLocaleString()
+            };
+            
+            memes.unshift(meme); // Add to beginning
+            saveMemes();
+            displayMemes();
+          };
+          
+          reader.readAsDataURL(file);
+        }
+      }
+      
+      // Reset input
+      e.target.value = '';
+    });
+
+    // Display all memes
+    function displayMemes() {
+      const gallery = document.getElementById('gallery');
+      const memeCount = document.getElementById('memeCount');
+      
+      memeCount.textContent = memes.length;
+      
+      if (memes.length === 0) {
+        gallery.innerHTML = '<div class="empty-state">NO MEMES DETECTED<br>>> UPLOAD TO BEGIN <<</div>';
+        return;
+      }
+      
+      gallery.innerHTML = memes.map(meme => `
+        <div class="meme-card" onclick="openModal('${meme.id}')">
+          <img src="${meme.data}" alt="${meme.name}">
+          <div class="meme-info">
+            <div style="margin-bottom: 5px;">${meme.name}</div>
+            <div style="opacity: 0.6; font-size: 0.9em;">${meme.uploadDate}</div>
+            <button class="download-btn" onclick="event.stopPropagation(); downloadMeme('${meme.id}')">
+              DOWNLOAD
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Open modal with enlarged image
+    function openModal(memeId) {
+      const meme = memes.find(m => m.id == memeId);
+      if (meme) {
+        document.getElementById('modalImage').src = meme.data;
+        document.getElementById('modal').classList.add('active');
+        currentMemeData = meme;
+      }
+    }
+
+    // Close modal
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+      currentMemeData = null;
+    }
+
+    // Close modal on background click
+    document.getElementById('modal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeModal();
+      }
+    });
+
+    // Download meme from card
+    function downloadMeme(memeId) {
+      const meme = memes.find(m => m.id == memeId);
+      if (meme) {
+        const link = document.createElement('a');
+        link.href = meme.data;
+        link.download = meme.name;
+        link.click();
+      }
+    }
+
+    // Download current meme in modal
+    function downloadCurrentMeme() {
+      if (currentMemeData) {
+        const link = document.createElement('a');
+        link.href = currentMemeData.data;
+        link.download = currentMemeData.name;
+        link.click();
+      }
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+
+    // Initialize
+    loadMemes();
+  </script>
+</body>
+</html>
