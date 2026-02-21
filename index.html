@@ -401,7 +401,7 @@
   <div class="upload-section">
     <div class="drop-zone" id="dropZone">
       <div class="drop-zone-text">DRAG IMAGES HERE OR</div>
-      <input type="file" id="fileInput" accept="image/*" multiple>
+      <input type="file" id="fileInput" accept="image/jpeg,image/png" multiple>
       <button class="btn" onclick="document.getElementById('fileInput').click()" id="uploadBtn">
         + UPLOAD
       </button>
@@ -447,7 +447,6 @@
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <script>
@@ -455,13 +454,13 @@
   // FIREBASE CONFIG — paste your Firebase config here
   // ============================================================
   const firebaseConfig = {
-    apiKey: "AIzaSyCHIDtqYhDi5EyCwbtTvAZGS0Nd4-3dkhE",
-    authDomain: "click-me-8c931.firebaseapp.com",
-    databaseURL: "https://click-me-8c931-default-rtdb.firebaseio.com",
-    projectId: "click-me-8c931",
-    storageBucket: "click-me-8c931.firebasestorage.app",
-    messagingSenderId: "805463676341",
-    appId: "1:805463676341:web:42e3a25681b755c2c175fc"
+    apiKey: "AIzaSyADdqgWswMKS5MuizJ9hWlBe-BeKu2NXRo",
+    authDomain: "meme-folder-cb73f.firebaseapp.com",
+    projectId: "meme-folder-cb73f",
+    storageBucket: "meme-folder-cb73f.firebasestorage.app",
+    messagingSenderId: "1078307852205",
+    appId: "1:1078307852205:web:3641ba498e4f5d4542db24",
+    measurementId: "G-09FTQ67CZ4"
   };
 
   const DELETE_PASSWORD = 'burn';
@@ -470,7 +469,6 @@
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
-  const storage = firebase.storage();
   const db = firebase.firestore();
 
   let memes = [];
@@ -532,8 +530,14 @@
 
   // ── Upload Files ─────────────────────────────────────────────
   async function handleFiles(files) {
-    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
-    if (!imageFiles.length) return;
+    const imageFiles = Array.from(files).filter(f => 
+      f.type === 'image/jpeg' || f.type === 'image/png'
+    );
+    
+    if (!imageFiles.length) {
+      showStatus('Only JPG and PNG files allowed', 'error');
+      return;
+    }
 
     const btn = document.getElementById('uploadBtn');
     const progressWrap = document.getElementById('progressWrap');
@@ -547,17 +551,14 @@
     for (let file of imageFiles) {
       showStatus(`Uploading ${uploaded + 1} of ${imageFiles.length}...`);
       try {
-        // Upload to Firebase Storage
-        const timestamp = Date.now();
-        const filename = `${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
-        const storageRef = storage.ref(`memes/${filename}`);
-        await storageRef.put(file);
-        const url = await storageRef.getDownloadURL();
+        // Convert to base64
+        const base64 = await fileToBase64(file);
 
-        // Save metadata to Firestore
+        // Save to Firestore with base64 data
         await db.collection('memes').add({
-          url: url,
-          path: `memes/${filename}`,
+          data: base64,
+          type: file.type,
+          size: file.size,
           uploaded: firebase.firestore.FieldValue.serverTimestamp()
         });
 
@@ -578,6 +579,15 @@
     }, 3000);
 
     await loadMemes();
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   document.getElementById('fileInput').addEventListener('change', async function (e) {
@@ -615,7 +625,7 @@
 
     gallery.innerHTML = memes.map(m => `
       <div class="meme-card" onclick="openModal('${m.id}')">
-        <img src="${m.url}" alt="meme" loading="lazy">
+        <img src="${m.data}" alt="meme" loading="lazy">
         <div class="card-overlay">
           <button class="icon-btn" onclick="event.stopPropagation(); downloadMeme('${m.id}')">⬇ Download</button>
           <button class="icon-btn del" onclick="event.stopPropagation(); promptDelete('${m.id}')">Delete</button>
@@ -629,7 +639,7 @@
     const meme = memes.find(m => m.id === id);
     if (!meme) return;
     currentMeme = meme;
-    document.getElementById('modalImg').src = meme.url;
+    document.getElementById('modalImg').src = meme.data;
     document.getElementById('modal').classList.add('active');
   }
 
@@ -647,9 +657,8 @@
     const meme = memes.find(m => m.id === id);
     if (!meme) return;
     const a = document.createElement('a');
-    a.href = meme.url;
-    a.download = 'meme.jpg';
-    a.target = '_blank';
+    a.href = meme.data;
+    a.download = `meme.${meme.type === 'image/png' ? 'png' : 'jpg'}`;
     a.click();
   }
 
@@ -702,10 +711,6 @@
   async function deleteMeme(meme) {
     if (!meme) return;
     try {
-      // Delete from Storage
-      const storageRef = storage.ref(meme.path);
-      await storageRef.delete();
-      
       // Delete from Firestore
       await db.collection('memes').doc(meme.id).delete();
       
