@@ -530,9 +530,14 @@
 
   // ── Upload Files ─────────────────────────────────────────────
   async function handleFiles(files) {
-    const imageFiles = Array.from(files).filter(f => 
-      f.type === 'image/jpeg' || f.type === 'image/png'
-    );
+    console.log('Files received:', files.length);
+    
+    const imageFiles = Array.from(files).filter(f => {
+      console.log('File type:', f.type);
+      return f.type === 'image/jpeg' || f.type === 'image/png';
+    });
+    
+    console.log('Image files filtered:', imageFiles.length);
     
     if (!imageFiles.length) {
       showStatus('Only JPG and PNG files allowed', 'error');
@@ -550,23 +555,31 @@
 
     for (let file of imageFiles) {
       showStatus(`Uploading ${uploaded + 1} of ${imageFiles.length}...`);
+      console.log('Processing file:', file.name, file.type, file.size);
+      
       try {
         // Convert to base64
+        console.log('Converting to base64...');
         const base64 = await fileToBase64(file);
+        console.log('Base64 length:', base64.length);
 
         // Save to Firestore with base64 data
-        await db.collection('memes').add({
+        console.log('Saving to Firestore...');
+        const docRef = await db.collection('memes').add({
           data: base64,
           type: file.type,
           size: file.size,
           uploaded: firebase.firestore.FieldValue.serverTimestamp()
         });
+        console.log('Saved with ID:', docRef.id);
 
         uploaded++;
         progressBar.style.width = (uploaded / imageFiles.length * 100) + '%';
       } catch (err) {
-        console.error('Upload error:', err);
-        showStatus(`Error uploading file`, 'error');
+        console.error('Upload error details:', err);
+        console.error('Error message:', err.message);
+        console.error('Error code:', err.code);
+        showStatus(`Error: ${err.message}`, 'error');
       }
     }
 
@@ -578,14 +591,21 @@
       showStatus('');
     }, 3000);
 
+    console.log('Reloading memes...');
     await loadMemes();
   }
 
   function fileToBase64(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
+      reader.onload = () => {
+        console.log('FileReader completed');
+        resolve(reader.result);
+      };
+      reader.onerror = (error) => {
+        console.error('FileReader error:', error);
+        reject(error);
+      };
       reader.readAsDataURL(file);
     });
   }
